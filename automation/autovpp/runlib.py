@@ -163,6 +163,8 @@ def init_std_args():
                          type=convert_number,
                          help="snaplen for packet capture")
     runargs.add_argument("--connections", type=int, default=1, help="Number IPsec connections")
+    runargs.add_argument("--custom-vpp-config-script",
+        help="Call this script after tfs-cfg-sub.sh to generate additional vppconfig entries")
     runargs.add_argument("-d",
                          "--duration",
                          type=float,
@@ -257,6 +259,9 @@ def init_std_args():
     setupargs.add_argument("--dont-use-ipsec",
                            action="store_true",
                            help="dont configure ipsec or tfs")
+    setupargs.add_argument("--dont-use-trex",
+                           action="store_true",
+                           help="dont start TREX (use testbed in other ways)")
     setupargs.add_argument("--async-crypto",
                            action="store_true",
                            help="Use async crypto mode")
@@ -642,7 +647,9 @@ def init_all_up(args):
         vpplist = vpps_up(args)
         vpps_wait_up(args, vpplist)
 
-        trex = trex_up(args)
+        trex = None
+        if not args.dont_use_trex:
+            trex = trex_up(args)
 
         if not args.etfs:
             vpps_ike_up(vpplist)

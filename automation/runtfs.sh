@@ -74,6 +74,8 @@ f_vpp_trace_verbose=0
 o_buffer_size=0
 o_buffers=30k
 o_connections=1
+o_custom_vpp_config_script=""
+o_duration=0
 o_event_log_size=0
 o_gdb_symbol=""
 o_integrity_ipaddrs=""
@@ -117,11 +119,13 @@ $0: [-69acCEFgiIkKnNOpPVxy] [-b count] [-B size] [-d desc ] [-D desc] [-e size]
     -D desc :: descriptor config for iptfs interface [${desc_tunif}]
     -e size :: event log size [${o_event_log_size}]
     -E :: exec vpp
+    -f script :: optional customization script to run after tfs-cfg-sub.sh
     -F :: forwarding only (no iptfs no ipsec, no ipip)
     -g :: run with GDB
     -G :: run with GDB server
     -i :: run in interactive mode
     -I :: run with IKE instead of static iptfs config
+    -j duration :: test duration specified to runtests.py
     -J hostips :: host IP addresses for ssh integrity test
     -K :: run with crypto-engine backend
     -k :: use MACSEC enKryption
@@ -158,7 +162,7 @@ EOF
     exit 0
 }
 
-while getopts 69aAb:B:cCd:D:EFe:gGhH:iIJ:kKl:LM:m:nNR:r:OpPq:Q:S:s:T:t:UuvVW:w:xX:yYzZ opt; do
+while getopts 69aAb:B:cCd:D:Ee:f:FgGhH:iIj:J:kKl:LM:m:nNOpPq:Q:R:r:S:s:T:t:UuvVW:w:xX:yYzZ opt; do
     case $opt in
         6)
             f_use_ipv6_encap=1
@@ -196,6 +200,11 @@ while getopts 69aAb:B:cCd:D:EFe:gGhH:iIJ:kKl:LM:m:nNR:r:OpPq:Q:S:s:T:t:UuvVW:w:x
         E)
             f_exec=1
             ;;
+	f)
+	    # Optional script called after tfs-cfg-sub.sh to add further
+	    # customizations to $vppconfig
+            o_custom_vpp_config_script=${OPTARG}
+            ;;
         F)
             f_use_tunnel=0
             f_use_ipsec=0
@@ -214,6 +223,9 @@ while getopts 69aAb:B:cCd:D:EFe:gGhH:iIJ:kKl:LM:m:nNR:r:OpPq:Q:S:s:T:t:UuvVW:w:x
             ;;
         I)
             f_use_ike=1
+            ;;
+        j)
+            o_duration="${OPTARG}"
             ;;
         J)
             o_integrity_ipaddrs="${OPTARG}"
@@ -1002,6 +1014,9 @@ fi
 # Generate the TFS config
 if (( ! f_no_tfs_config )); then
     source $VPPDIR/automation/tfs-cfg-sub.sh
+fi
+if [[ -n $o_custom_vpp_config_script ]]; then
+    source $VPPDIR/automation/${o_custom_vpp_config_script}
 fi
 
 # Either iptfs-encap or iptfs-output will trace these

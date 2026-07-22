@@ -855,6 +855,8 @@ class VPP(Process):
         if args.dont_use_ipsec:
             run_tfs_args.append("-O")
             self.iptfs_enabled = False
+        if hasattr(args, "custom_vpp_config_script"):
+            run_tfs_args.append("-f {args.custom_vpp_config_script}")
         if args.dont_use_tfs:
             run_tfs_args.append("-N")
             self.iptfs_enabled = False
@@ -996,6 +998,9 @@ class VPP(Process):
             run_tfs_args.append("-y")
         if args.testbed in testbed_docker_physical:
             run_tfs_args.append("-Y")
+        # for mgen tests:
+        if args.duration:
+            run_tfs_args.append(f"-j {args.duration}")
 
         run_tfs_args.extend(self.get_tfs_args(args, False))
         return os.path.join(self.autodir, "runtfs.sh") + " " + " ".join(run_tfs_args)
