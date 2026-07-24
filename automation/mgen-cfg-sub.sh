@@ -33,10 +33,11 @@
 #
 # We need to convert SIZE and RATE to corresponding values for mgen
 #
-# TBD: also incorporate duration value from runtests.py
 
 
-ipa_me=$(make_v4v6_tfs_prefix $(get_tfs_intf_addr 0 1)
+prefix_me=$(make_v4v6_tfs_prefix $(get_tfs_intf_addr 0 1))
+ipa_me="${prefix_me%/*}"
+
 ipa_them=$(get_tfs_remote_ip 0 1)
 port_src=8811
 port_dst=8812
@@ -99,21 +100,21 @@ get_mgen_rate_size()
 	L4_OVH=8
 	;;
     *)
-	echo "bad L4_TYPE: $L4_TYPE"
+	echo "bad L4_TYPE: $L4_TYPE" >&2
 	exit 1
 	;;
     esac
 
-    $L2_OVH=36
+    L2_OVH=36
 
-    $bits_per_payload=$(( ( $MTU + $L2_OVH ) * 8 ))
-    $payloads_per-second=$(( $MEDIUM_BITRATE / $bits_per_payload ))
-    $mgen_payload_size=$(( $MTU - 20 - $L4_OVH ))
+    bits_per_payload=$(( ( $MTU + $L2_OVH ) * 8 ))
+    payloads_per_second=$(( $MEDIUM_BITRATE / $bits_per_payload ))
+    mgen_payload_size=$(( $MTU - 20 - $L4_OVH ))
 
     echo "$payloads_per_second" "$mgen_payload_size"
 }
 
-read -r mgen_rate mgen_size <<< "$(get_mgen_rate_size ${o_iptfs_packet_size} ${o_tfs_ether_rate})"
+read -r mgen_rate mgen_size <<< "$(get_mgen_rate_size ${o_iptfs_packet_size} ${o_tfs_ether_rate} udp)"
 
 echo "Calculated mgen rate: $mgen_rate"
 echo "Calculated mgen size: $mgen_size"
@@ -121,16 +122,20 @@ echo "Calculated mgen size: $mgen_size"
 # For mgen, we will probably rx and tx on ${vpp_ifnames[1]}
 
 mgen_ontime=15
-mgen_offtime=$(( $mgen_ontime + ${o_duration} ))
+duration_integer="${o_duration%.*}"
+mgen_offtime=$(( $mgen_ontime + ${duration_integer} ))
 
 echo "Mgen ontime $mgen_ontime"
 echo "Mgen offtime $mgen_offtime"
 
+# Not sure if needed: below we append ".0" to mgen_ontime to force
+# explicit floating-point format.
+
 cat >> $vppconfig <<- EOF
-#mgen log /tmp/mgen_rx.log
-#mgen listen UDP $port_dst analytics window 5
-#mgen event $mgen_ontime ON 1 UDP SRC $ipa_me/$port_src DST $ipa_them/$port_dst PERIODIC [$mgen_rate $mgen_size]
-#mgen event $mgen_offtime OFF 1
-#mgen start
+mgen log /tmp/mgen_rx.log
+mgen listen UDP $port_dst analytics window 5
+mgen event ${mgen_ontime}.0 ON 1 UDP SRC $ipa_me/$port_src DST $ipa_them/$port_dst PERIODIC [$mgen_rate $mgen_size]
+mgen event $mgen_offtime OFF 1
+mgen start
 EOF
 
