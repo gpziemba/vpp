@@ -856,7 +856,7 @@ class VPP(Process):
             run_tfs_args.append("-O")
             self.iptfs_enabled = False
         if hasattr(args, "custom_vpp_config_script"):
-            run_tfs_args.append("-f {args.custom_vpp_config_script}")
+            run_tfs_args.append(f"-f {args.custom_vpp_config_script}")
         if args.dont_use_tfs:
             run_tfs_args.append("-N")
             self.iptfs_enabled = False
